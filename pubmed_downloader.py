@@ -1,4 +1,5 @@
 from Bio import Entrez
+import multiprocessing as mp
 
 # define E-Mail
 Entrez.email = "chiara.becht@web.de"
@@ -50,40 +51,74 @@ def retrieve_pmids(total_records, batch_size, keyword):
     print("length of pmid list:", len(pmids))
     return pmids
 
-# Step 3: download the abstracts
-'''abstracts = []
-titles = []
-for pmid in pmids:
-    handle = Entrez.efetch(db="pubmed", id=pmid, retmode="xml")
-    record = Entrez.read(handle)
-    title = record["PubmedArticle"][0]["MedlineCitation"]["Article"]["ArticleTitle"]
-    titles.append(title)
-    abstract = record["PubmedArticle"][0]["MedlineCitation"]["Article"]["Abstract"]["AbstractText"]
-    abstract_text = " ".join(abstract)
-    abstracts.append(abstract_text)
+def download_title_abstract_loop(pmids):
+    """
+    Step 3: download the titles and abstracts and save as text files.
 
-print(abstracts)
+    :params:
+        pmids: list with pmids to download
+    """
+    abstracts = []
+    titles = []
+    for pmid in pmids:
+        handle = Entrez.efetch(db="pubmed", id=pmid, retmode="xml")
+        record = Entrez.read(handle)
+        title = record["PubmedArticle"][0]["MedlineCitation"]["Article"]["ArticleTitle"]
+        titles.append(title)
+        abstract = record["PubmedArticle"][0]["MedlineCitation"]["Article"]["Abstract"]["AbstractText"]
+        abstract_text = " ".join(abstract)
+        abstracts.append(abstract_text)
 
-#def save_abstracts_to_file(pmids, titles, abstracts):
-for pmid, title, abstract in zip(pmids, titles, abstracts):
-    filename = pmid + '.txt'
-    text = title + ' ' + abstract
-    with open(filename, "w", encoding="utf-8") as file:
-        file.write(text)
+    for pmid, title, abstract in zip(pmids, titles, abstracts):
+        filename = pmid + '.txt'
+        text = title + ' ' + abstract
+        with open(filename, "w", encoding="utf-8") as file:
+            file.write(text)
 
-print("file downloaded")
+def download_title_abstract(pmid):
+    """
+    Step 3: download the titles and abstracts and save as text files.
 
-def keyword_search_pmids(keyword):
-    handle = Entrez.esearch(db="pubmed", term=keyword, api_key = 'c4507f85c841d7430a209603112dba418607', retmax=100)  # Adjust retmax as needed
-    record = Entrez.read(handle)
-    pmids = record["IdList"]
-    print(pmids)
+    :params:
+        pmids: list with pmids to download
+    """
+    # obtain text
+    try:
+        print(f'obtaining text for abstract {pmid}')
+        handle = Entrez.efetch(db="pubmed", id=pmid, retmode="xml")
+        record = Entrez.read(handle)
+        title = record["PubmedArticle"][0]["MedlineCitation"]["Article"]["ArticleTitle"]
+        abstract = record["PubmedArticle"][0]["MedlineCitation"]["Article"]["Abstract"]["AbstractText"]
+        abstract_text = " ".join(abstract)
 
-def download_abstract_text():
-    pass'''
+        # save to file
+        print("saving file")
+        filename = pmid + '.txt'
+        print(filename)
+        text = title + ' ' + abstract_text
+        print(text)
+        with open(filename, "w", encoding="utf-8") as file:
+            file.write(text)
+        print("file downloaded")
+        print(20*'--')
+        return filename
+    except:
+        print("no text obtained for {pmid}")
+        filename = pmid + '.txt'
+        return filename
+
+    
+
 
 if __name__ == '__main__':
     keyword = "mcardle"
     batch_size = 100
     total_records = count_total_records(keyword = keyword)
     pmids = retrieve_pmids(total_records, batch_size, keyword)
+
+    # set up mulitprocessing task to download 10 referenced articles concurrently
+    cpus = mp.cpu_count()
+    if cpus > 4:
+        cpus = 4
+    with mp.Pool(cpus) as pool:
+        results = pool.map(download_title_abstract, pmids)
