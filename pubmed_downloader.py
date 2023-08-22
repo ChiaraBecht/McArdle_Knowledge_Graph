@@ -3,18 +3,21 @@ from Bio import Entrez
 # define E-Mail
 Entrez.email = "chiara.becht@web.de"
 
-
-
-# Step 1: Retrieve the total number of records for the keyword
-'''handle = Entrez.esearch(db="pubmed", term=keyword)
-record = Entrez.read(handle)
-total_records = int(record["Count"])
-print("total number of hits:", total_records)'''
-
 def count_total_records(keyword):
     """
+    Step 1: Retrieve the total number of records for the keyword
+    For a provided keyword titles and abstracts within the PubMed database
+    is searched and the total number of found articles is returned.
+
+    :params:
+        keyword: search term
+
+    :return:
+        total_records: number of abstracts where search term was found in either title or abstract
     """
-    handle = Entrez.esearch(db = "pubmed", term = f"{keyword}[Title/Abstract]", api_key = "c4507f85c841d7430a209603112dba418607")
+    handle = Entrez.esearch(db = "pubmed",
+                            term = f"{keyword}[Title/Abstract]",
+                            api_key = "c4507f85c841d7430a209603112dba418607")
     record = Entrez.read(handle)
     total_records = int(record["Count"])
     print("total number of hits for the keyword:", total_records)
