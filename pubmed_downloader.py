@@ -23,18 +23,32 @@ def count_total_records(keyword):
     print("total number of hits for the keyword:", total_records)
     return total_records
 
-# Step 2: obtain all PMIDS in batches
-'''batch_size = 1
-pmids = []
-handle = Entrez.esearch(db="pubmed", term=keyword, api_key = 'c4507f85c841d7430a209603112dba418607', retmax=batch_size)  # Adjust retmax as needed
-record = Entrez.read(handle)
-pmids = record["IdList"]
-print('PMIDS:', pmids)'''
 
-'''for start in range(0, total_records, batch_size):
-    handle = Entrez.esearch(db="pubmed", term=keyword, retstart=start, api_key = 'c4507f85c841d7430a209603112dba418607', retmax=batch_size)
-    record = Entrez.read(handle)
-    pmids.append(record["IdList"])'''
+def retrieve_pmids(total_records, batch_size, keyword):
+    """
+    Step 2: obtain all PMIDS in batches and store them in a list.
+
+    :params:
+        total_records: number of publications that contain the keyword
+        batch_size: number of publications to be accessed from PubMed
+                    per acquisition step
+        keyword: search term
+
+    :return:
+        pmids: list with collected pmids matching the keyword
+    """
+    pmids = []
+    for start in range(0, total_records, batch_size):
+        handle = Entrez.esearch(db="pubmed",
+                                term=f"{keyword}[Title/Abstract]",
+                                retstart=start,
+                                api_key = 'c4507f85c841d7430a209603112dba418607',
+                                retmax=batch_size)
+        record = Entrez.read(handle)
+        for item in record["IdList"]:
+            pmids.append(item)
+    print("length of pmid list:", len(pmids))
+    return pmids
 
 # Step 3: download the abstracts
 '''abstracts = []
@@ -70,4 +84,6 @@ def download_abstract_text():
 
 if __name__ == '__main__':
     keyword = "mcardle"
+    batch_size = 100
     total_records = count_total_records(keyword = keyword)
+    pmids = retrieve_pmids(total_records, batch_size, keyword)
