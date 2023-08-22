@@ -1,8 +1,20 @@
 from Bio import Entrez
 import multiprocessing as mp
+from pathlib import Path
 
 # define E-Mail
 Entrez.email = "chiara.becht@web.de"
+
+# set data path
+cwd = Path(__file__).parent.absolute()
+data_dir_p = cwd / 'data'
+
+def data_directory(data_dir_p):
+    """
+    Create the output directory in the same directory this script is located
+    """
+    if not(data_dir_p.exists()):
+            data_dir_p.mkdir(parents=True, exist_ok=False)
 
 def count_total_records(keyword):
     """
@@ -51,30 +63,6 @@ def retrieve_pmids(total_records, batch_size, keyword):
     print("length of pmid list:", len(pmids))
     return pmids
 
-def download_title_abstract_loop(pmids):
-    """
-    Step 3: download the titles and abstracts and save as text files.
-
-    :params:
-        pmids: list with pmids to download
-    """
-    abstracts = []
-    titles = []
-    for pmid in pmids:
-        handle = Entrez.efetch(db="pubmed", id=pmid, retmode="xml")
-        record = Entrez.read(handle)
-        title = record["PubmedArticle"][0]["MedlineCitation"]["Article"]["ArticleTitle"]
-        titles.append(title)
-        abstract = record["PubmedArticle"][0]["MedlineCitation"]["Article"]["Abstract"]["AbstractText"]
-        abstract_text = " ".join(abstract)
-        abstracts.append(abstract_text)
-
-    for pmid, title, abstract in zip(pmids, titles, abstracts):
-        filename = pmid + '.txt'
-        text = title + ' ' + abstract
-        with open(filename, "w", encoding="utf-8") as file:
-            file.write(text)
-
 def download_title_abstract(pmid):
     """
     Step 3: download the titles and abstracts and save as text files.
@@ -97,15 +85,15 @@ def download_title_abstract(pmid):
         print(filename)
         text = title + ' ' + abstract_text
         print(text)
-        with open(filename, "w", encoding="utf-8") as file:
+        with open(f'{data_dir_p}/{pmid}.txt', "w", encoding="utf-8") as file:
             file.write(text)
         print("file downloaded")
         print(20*'--')
-        return filename
+        return (filename, "success")
     except:
         print("no text obtained for {pmid}")
         filename = pmid + '.txt'
-        return filename
+        return (filename, "fail")
 
     
 
@@ -113,12 +101,24 @@ def download_title_abstract(pmid):
 if __name__ == '__main__':
     keyword = "mcardle"
     batch_size = 100
+
+    # create output directory
+    data_directory(data_dir_p)
+
+    # count total records
     total_records = count_total_records(keyword = keyword)
+
+    # retrieve pubmed ids
     pmids = retrieve_pmids(total_records, batch_size, keyword)
 
-    # set up mulitprocessing task to download 10 referenced articles concurrently
+    # set up mulitprocessing task to download titles and abstracts concurrently
     cpus = mp.cpu_count()
     if cpus > 4:
         cpus = 4
     with mp.Pool(cpus) as pool:
         results = pool.map(download_title_abstract, pmids)
+    print(results)
+
+    with open("download_track.csv", "w") as file:
+        for item in results:
+            file.write(f"{item[0]},{item[1]}\n")
