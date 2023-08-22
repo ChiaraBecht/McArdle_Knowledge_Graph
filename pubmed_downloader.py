@@ -1,6 +1,9 @@
 from Bio import Entrez
 import multiprocessing as mp
 from pathlib import Path
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
 
 # define E-Mail
 Entrez.email = "chiara.becht@web.de"
@@ -81,20 +84,17 @@ def download_title_abstract(pmid):
 
         # save to file
         print("saving file")
-        filename = pmid + '.txt'
-        print(filename)
         text = title + ' ' + abstract_text
         print(text)
         with open(f'{data_dir_p}/{pmid}.txt', "w", encoding="utf-8") as file:
             file.write(text)
         print("file downloaded")
         print(20*'--')
-        return (filename, "success")#, year)
+        return (pmid, "success")#, year)
 
     except:
         print("no text obtained for {pmid}")
-        filename = pmid + '.txt'
-        return (filename, "fail")#, "-")
+        return (pmid, "fail")#, "-")
 
 def extract_year(pmid):
     """
@@ -115,6 +115,37 @@ def extract_year(pmid):
         return (pmid, year)
     except:
         return (pmid, "-")
+
+def download_stats(total_records):
+    """
+    bar chart that shows count of all articles matching the keyword, the downloaded text files
+    and the meta data download.
+
+    :param:
+        total_records: number of articles
+    """
+    texts = pd.read_csv('download_track.csv', names=['pmid', 'indicator'])
+    texts
+    # Create a Seaborn countplot
+    sns.set(style="whitegrid")
+    ax = sns.countplot(x=texts["indicator"])
+    # Save the countplot to a file
+    plt.savefig("data_download_stat.png")
+
+    metadata = pd.read_csv('years.csv', names = ['pmid', 'year'])
+    # Create a Seaborn countplot
+    sns.set(style="whitegrid")
+    ax = sns.countplot(x=metadata["year"])
+    # Save the countplot to a file
+    plt.savefig("metadata_download_stat.png")
+
+    count_text = (texts["indicator"] == 'success').sum()
+    count_metadata = len(metadata.index)- (metadata["year"] == '-').sum()
+    labels = ['abstracts', 'metadata', 'records']
+    data = [count_text, count_metadata, total_records]
+    sns.set(style="whitegrid")
+    ax = sns.barplot(x=labels, y=data)
+    plt.savefig("download_stat_comp.png")
 
 if __name__ == '__main__':
     keyword = "mcardle"
@@ -145,3 +176,5 @@ if __name__ == '__main__':
         res_tup = extract_year(pmid)
         with open("years.csv", "a") as file:
                 file.write(f"{res_tup[0]},{res_tup[1]}\n")
+    
+    download_stats(total_records)
