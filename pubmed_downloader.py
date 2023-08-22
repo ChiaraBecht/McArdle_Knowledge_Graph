@@ -89,14 +89,32 @@ def download_title_abstract(pmid):
             file.write(text)
         print("file downloaded")
         print(20*'--')
-        return (filename, "success")
+        return (filename, "success")#, year)
+
     except:
         print("no text obtained for {pmid}")
         filename = pmid + '.txt'
-        return (filename, "fail")
+        return (filename, "fail")#, "-")
 
+def extract_year(pmid):
+    """
+    parse year from each article
+
+    :params:
+        pmid: pubmed id of article to be processed
     
-
+    :return: 
+        tuple of pmid and year
+    """ 
+    handle = Entrez.efetch(db="pubmed", id=pmid, retmode="xml")
+    record = Entrez.read(handle)
+    try:
+        print(pmid)
+        year = record["PubmedArticle"][0]["MedlineCitation"]["Article"]["ArticleDate"][0]["Year"]
+        #year_1 = record["PubmedArticle"][0]["MedlineCitation"]["Article"]["Journal"]["JournalIssue"]["PubDate"]["Year"]
+        return (pmid, year)
+    except:
+        return (pmid, "-")
 
 if __name__ == '__main__':
     keyword = "mcardle"
@@ -122,3 +140,8 @@ if __name__ == '__main__':
     with open("download_track.csv", "w") as file:
         for item in results:
             file.write(f"{item[0]},{item[1]}\n")
+    
+    for pmid in pmids:
+        res_tup = extract_year(pmid)
+        with open("years.csv", "a") as file:
+                file.write(f"{res_tup[0]},{res_tup[1]}\n")
