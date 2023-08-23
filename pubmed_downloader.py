@@ -108,13 +108,26 @@ def extract_year(pmid):
     """ 
     handle = Entrez.efetch(db="pubmed", id=pmid, retmode="xml")
     record = Entrez.read(handle)
-    try:
+    if record["PubmedArticle"]:
         print(pmid)
-        year = record["PubmedArticle"][0]["MedlineCitation"]["Article"]["ArticleDate"][0]["Year"]
-        #year_1 = record["PubmedArticle"][0]["MedlineCitation"]["Article"]["Journal"]["JournalIssue"]["PubDate"]["Year"]
+        try:
+            year = record["PubmedArticle"][0]["MedlineCitation"]["Article"]["ArticleDate"][0]["Year"]
+            return (pmid, year)
+        except:
+            try:
+                year = record["PubmedArticle"][0]["MedlineCitation"]["Article"]["Journal"]["JournalIssue"]["PubDate"]["Year"]
+                return (pmid, year)
+            except:
+                date = record["PubmedArticle"][0]["MedlineCitation"]["Article"]["Journal"]["JournalIssue"]["PubDate"]["MedlineDate"]
+                year = date[:4]
+                return (pmid, year)
+    elif record["PubmedBookArticle"]:
+        print(pmid)
+        year = record["PubmedBookArticle"][0]["BookDocument"]["ContributionDate"]["Year"]
         return (pmid, year)
-    except:
-        return (pmid, "-")
+    else:
+        return (pmid, '-')
+
 
 def download_stats(total_records):
     """
